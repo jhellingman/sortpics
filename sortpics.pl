@@ -10,7 +10,7 @@ use File::Temp;
 use File::Copy;
 use File::stat;
 use Time::localtime;
-use Image::Magick;
+# use Image::Magick;
 use Image::ExifTool;
 use Getopt::Long;
 
@@ -19,11 +19,12 @@ my $daysOffset = 0;                 # Offset to date, to deal with wrongly set c
 my $useModel = 0;                   # Use Make/Model in the directory structure.
 my $outputPath = "SortPics-Output"; # Base directory for copied files.
 my $filter = "";                    # Filer on Brand/Model.
+my $sidecarExtension = ".xmp";      # Extention on sidecar files (containing metadata).
 
 GetOptions(
-    't' => \$dryRun,
+    't'   => \$dryRun,
     'o=i' => \$daysOffset,
-    'm' => \$useModel,
+    'm'   => \$useModel,
     'f=s' => \$filter,
     'p=s' => \$outputPath);
 
@@ -47,6 +48,7 @@ my %modelMap = (
     "Canon IXUS 240 HS"             => "Canon/IXUS_240HS",      # Lyn
     "Canon PowerShot SX700 HS"      => "Canon/SX700HS",         # Bebie (vader Frank)
     "Canon PowerShot SX710 HS"      => "Canon/SX710HS",         # Jeroen
+    "Canon PowerShot SX720 HS"      => "Canon/SX720HS",         # Lyn (nieuw)
     "Canon EOS DIGITAL REBEL XT"    => "Canon/Rebel_XT",        # Gus V.
 
     "KODAK CX7430 ZOOM DIGITAL CAMERA"  => "Kodak/CX7430",      # ?
@@ -116,7 +118,7 @@ sub list_recursively($) {
 sub handle_file($) {
     my ($file) = @_;
 
-    if ($file =~ m/^(.*)\.(jpg|jpeg|avi|mov|cr2)$/i) {
+    if ($file =~ m/^(.*)\.(jpg|jpeg|avi|mov|cr2|mp4)$/i) {
         my $path = $1;
         my $extension = $2;
         my $base = basename($file, '.' . $extension);
@@ -167,6 +169,12 @@ sub handle_file($) {
                 print "$file -> $destination\n";
                 if ($dryRun == 0) {
                     mkdirAndCopy($file, $destination);
+                }
+                if (-e $file . $sidecarExtension) {
+                    print "$file$sidecarExtension -> $destination$sidecarExtension.\n";
+                    if ($dryRun == 0) {
+                        mkdirAndCopy($file . $sidecarExtension, $destination . $sidecarExtension);
+                    }
                 }
                 $picturesHandled++;
             }
