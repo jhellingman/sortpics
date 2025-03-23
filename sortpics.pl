@@ -1,8 +1,6 @@
 #!/usr/bin/perl -w
 
-#
 # Sort pictures, based on their EXIF data.
-#
 
 use strict;
 use File::Basename;
@@ -10,7 +8,6 @@ use File::Temp;
 use File::Copy;
 use File::stat;
 use Time::localtime;
-# use Image::Magick;
 use Image::ExifTool;
 use Getopt::Long;
 
@@ -18,7 +15,7 @@ my $dryRun = 0;
 my $daysOffset = 0;                 # Offset to date, to deal with wrongly set cameras.
 my $useModel = 0;                   # Use Make/Model in the directory structure.
 my $outputPath = "SortPics-Output"; # Base directory for copied files.
-my $filter = "";                    # Filer on Brand/Model.
+my $filter = "";                    # Filter on Brand/Model.
 my $sidecarExtension = ".xmp";      # Extention on sidecar files (containing metadata).
 
 GetOptions(
@@ -33,6 +30,7 @@ my $picturesHandled = 0;
 
 my %modelMap = (
     "iPhone 6"                      => "Apple/iPhone 6",        # Bebie (vader Frank)
+    "iPhone 14 Pro"                 => "Apple/iPhone 14 Pro",   # Rodelyn
 
     "Canon PowerShot A3100 IS"      => "Canon/A3100IS",         # Lyn
     "Canon PowerShot A480"          => "Canon/A480",            # Bebie
@@ -68,6 +66,9 @@ my %modelMap = (
     "SM-G900F"                      => "Samsung/SM-G900F",      # Joshua (?)
     "C2105"                         => "Sony/C2105",            # Sony telefoon
     "SLIMLINE X5"                   => "Traveler/Slimline_X5",  # Via Bebie (Ruth)
+
+    "Pixel 4a"                      => "Google/Pixel_4a",       # Joshua / later Jeroen
+    "Pixel 8"                       => "Google/Pixel_8",        # Jeroen
 
     "Other"                         => "Other"
 );
@@ -118,15 +119,10 @@ sub list_recursively($) {
 sub handle_file($) {
     my ($file) = @_;
 
-    if ($file =~ m/^(.*)\.(jpg|jpeg|avi|mov|cr2|mp4)$/i) {
+    if ($file =~ m/^(.*)\.(jpg|jpeg|avi|mov|cr2|mp4|heic|png|gif)$/i) {
         my $path = $1;
         my $extension = $2;
         my $base = basename($file, '.' . $extension);
-
-#        my $image = Image::Magick->new();
-#        $image->Read($file);
-#        my $model = $image->Get('format', '%[EXIF:Model]');
-#        my $date = $image->Get('format', '%[EXIF:DateTime]');
 
         my $exifTool = Image::ExifTool->new;
         $exifTool->ExtractInfo($file);
@@ -166,16 +162,17 @@ sub handle_file($) {
             if (-e "$destination") {
                 logMessage("Skipping $file: output '$destination' exists.");
             } else {
-                print "$file -> $destination\n";
+                print "$file -> $destination";
                 if ($dryRun == 0) {
                     mkdirAndCopy($file, $destination);
                 }
                 if (-e $file . $sidecarExtension) {
-                    print "$file$sidecarExtension -> $destination$sidecarExtension.\n";
+                    print " + $sidecarExtension";
                     if ($dryRun == 0) {
                         mkdirAndCopy($file . $sidecarExtension, $destination . $sidecarExtension);
                     }
                 }
+                print "\n";
                 $picturesHandled++;
             }
         } else {
